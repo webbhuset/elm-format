@@ -1,0 +1,1 @@
+<STDIN>:4: an `-- elm-format: off` region must come after the imports; elm-format sorts them, and the region would move.

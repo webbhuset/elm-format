@@ -22,6 +22,7 @@ import qualified Data.Text as Text
 import qualified ElmFormat.CliFlags as Flags
 import qualified ElmFormat.Parse as Parse
 import qualified ElmFormat.Render.Text as Render
+import qualified ElmFormat.Verbatim as Verbatim
 import qualified ElmFormat.Version
 import qualified Reporting.Result as Result
 import qualified ElmFormat.AST.PublicAST as PublicAST
@@ -158,9 +159,9 @@ autoDetectElmVersion =
 
 validate :: ElmVersion -> (FilePath, Text.Text) -> Either InfoMessage ()
 validate elmVersion input@(inputFile, inputText) =
-    case parseModule elmVersion input of
-        Right modu ->
-            if inputText /= Render.render elmVersion modu then
+    case format elmVersion input of
+        Right formatted ->
+            if inputText /= formatted then
                 Left $ FileWouldChange elmVersion inputFile
             else
                 Right ()
@@ -193,8 +194,11 @@ parseJson (inputFile, inputText) =
 
 
 format :: ElmVersion -> (FilePath, Text.Text) -> Either InfoMessage Text.Text
-format elmVersion input =
-    Render.render elmVersion <$> parseModule elmVersion input
+format elmVersion (inputFile, inputText) =
+    Verbatim.protect
+        (\text -> Render.render elmVersion <$> parseModule elmVersion (inputFile, text))
+        (VerbatimError inputFile)
+        inputText
 
 
 toJson :: ElmVersion -> (FilePath, Text.Text) -> Either InfoMessage Text.Text

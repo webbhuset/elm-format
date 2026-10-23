@@ -29,6 +29,17 @@ spec_spec =
             ElmFormat.main ["--stdin", "--elm-version=0.19"]
             fmap (golden "tests/stdin-error.stderr") fullStderr
 
+        describe "elm-format: off" $ do
+            it "rejects a marker inside a declaration" $ do
+                queueStdin "module Main exposing (f)\n\n\nf =\n    -- elm-format: off\n    1\n"
+                ElmFormat.main ["--stdin", "--elm-version=0.19"]
+                fmap (golden "tests/verbatim-indented.stderr") fullStderr
+
+            it "rejects a region among the imports" $ do
+                queueStdin "module Main exposing (f)\n\nimport B\n-- elm-format: off\nimport A\n-- elm-format: on\nimport C\n\n\nf =\n    1\n"
+                ElmFormat.main ["--stdin", "--elm-version=0.19"]
+                fmap (golden "tests/verbatim-imports.stderr") fullStderr
+
         describe "auto-detects Elm version" $ do
             it "for Elm 0.19 applications" $ do
                 uploadFile "test.elm" "module Main exposing (f)\n\n\nf =\n    '\\u{2000}'\n"

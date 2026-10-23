@@ -9,6 +9,7 @@ import Relude
 import CommandLine.InfoFormatter (ToConsole(..), Loggable(..))
 import CommandLine.ResolveFiles as ResolveFiles
 import qualified Data.Text as Text
+import qualified ElmFormat.Verbatim as Verbatim
 import qualified ElmFormat.Version
 import ElmVersion
 import qualified Reporting.Annotation as A
@@ -22,6 +23,7 @@ data InfoMessage
   | FileWouldChange ElmVersion FilePath
   | ParseError FilePath [A.Located Syntax.Error]
   | JsonParseError FilePath Text
+  | VerbatimError FilePath Verbatim.Error
 
 
 data PromptMessage
@@ -75,6 +77,10 @@ instance ToConsole InfoMessage where
         JsonParseError inputFile err ->
             "Unable to parse JSON file " <> Text.pack inputFile <> "\n\n" <> err
 
+        VerbatimError inputFile err ->
+            Text.pack inputFile <> maybe "" (\line -> ":" <> show line) (verbatimLine err)
+                <> ": " <> verbatimError err
+
 
 instance Loggable InfoMessage where
     jsonInfoMessage =
@@ -95,6 +101,10 @@ instance Loggable InfoMessage where
             Just $ fileMessage inputFile "Error parsing the file"
         JsonParseError inputFile _ ->
             Just $ fileMessage inputFile "Error parsing the JSON file"
+        VerbatimError inputFile err ->
+            Just $ fileMessage inputFile $ toString $
+                maybe "" (\line -> "Line " <> show line <> ": ") (verbatimLine err)
+                <> verbatimError err
 
 
 instance ToConsole ErrorMessage where
@@ -125,3 +135,22 @@ instance ToConsole ErrorMessage where
 
         NoInputs ->
             error "Error case NoInputs should be handled elsewhere.  Please report this issue at https://github.com/avh4/elm-format/issues"
+
+
+verbatimLine :: Verbatim.Error -> Maybe Int
+verbatimLine = \case
+    Verbatim.IndentedMarker line -> Just line
+    Verbatim.RegionAmongImports line -> Just line
+    Verbatim.RegionMoved -> Nothing
+
+
+verbatimError :: Verbatim.Error -> Text
+verbatimError = \case
+    Verbatim.IndentedMarker _ ->
+        "`-- elm-format: off` and `-- elm-format: on` only count at the start of a line, between top-level declarations."
+
+    Verbatim.RegionAmongImports _ ->
+        "an `-- elm-format: off` region must come after the imports; elm-format sorts them, and the region would move."
+
+    Verbatim.RegionMoved ->
+        "an `-- elm-format: off` region could not be kept in place. Regions must wrap whole top-level declarations after the imports."

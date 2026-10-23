@@ -30,6 +30,7 @@ executable elm-format
       ElmFormat.Cli
       ElmFormat.CliFlags
       ElmFormat.Messages
+      ElmFormat.Verbatim
       ElmFormat.Version
       Paths_elm_format
       Build_elm_format
@@ -69,6 +70,7 @@ test-suite elm-format-tests
       ElmFormat.Cli
       ElmFormat.CliFlags
       ElmFormat.Messages
+      ElmFormat.Verbatim
       ElmFormat.Version
       Build_elm_format
       Paths_elm_format

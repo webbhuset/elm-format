@@ -1,0 +1,1 @@
+<STDIN>:5: `-- elm-format: off` and `-- elm-format: on` only count at the start of a line, between top-level declarations.
