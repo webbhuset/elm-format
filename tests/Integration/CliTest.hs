@@ -66,6 +66,10 @@ spec_spec =
                 elmFormatXxx []
                 goldenExitStdout 1 "tests/usage.stdout"
 
+            it "elm-format --version" $ do
+                elmFormatXxx [ "--version" ]
+                goldenExitStdout 0 "tests/version.stdout"
+
             it "elm-format INPUT --yes does change the file" $ do
                 uploadFile "file.elm" unformatted_elm
                 ElmFormat.main [ "file.elm", "--elm-version=0.19", "--yes" ]

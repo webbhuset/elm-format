@@ -29,7 +29,7 @@ data JsonMode
 parser :: String -> Maybe String -> Opt.ParserInfo Config
 parser elmFormatVersion experimental =
     Opt.info
-        (Opt.helper <*> flags)
+        (Opt.helper <*> version elmFormatVersion <*> flags)
         (helpInfo elmFormatVersion experimental)
 
 
@@ -49,6 +49,15 @@ flags =
 
 
 -- HELP
+
+version :: String -> Opt.Parser (a -> a)
+version elmFormatVersion =
+    Opt.infoOption elmFormatVersion $
+        mconcat
+        [ Opt.long "version"
+        , Opt.help "Show the version of elm-format."
+        ]
+
 
 helpInfo :: String -> Maybe String -> Opt.InfoMod Config
 helpInfo elmFormatVersion experimental =

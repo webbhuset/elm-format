@@ -1,12 +1,13 @@
 elm-format x.x.x
 
-Usage: elm-format [INPUT] [--output FILE] [--yes] [--validate] [--stdin] 
-                  [--elm-version VERSION]
+Usage: elm-format [--version] [INPUT] [--output FILE] [--yes] [--validate] 
+                  [--stdin] [--elm-version VERSION]
 
   Format Elm source files.
 
 Available options:
   -h,--help                Show this help text
+  --version                Show the version of elm-format.
   --output FILE            Write output to FILE instead of overwriting the given
                            source file.
   --yes                    Reply 'yes' to all automated prompts.
