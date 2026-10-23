@@ -6,6 +6,7 @@
 !elm-format-markdown
 !elm-format-lib
 !src
+!Shakefile
 !generated
 !elm-format-test-lib
 !avh4-lib

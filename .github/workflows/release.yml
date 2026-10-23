@@ -1,0 +1,165 @@
+name: Release binaries
+
+# Build elm-format for every platform Fusion's bootstrap downloads, and collect
+# the binaries in a draft GitHub release. Triggered by pushing a version tag,
+# e.g. v0.8.8-dev0001.
+#
+# The draft is reviewed and published as a pre-release by hand: a draft has no
+# public download URL, and bootstrap needs one.
+#
+# Run from the Actions tab, it builds the binaries without releasing them.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# Needed for the release job to create a Release and upload assets.
+permissions:
+  contents: write
+
+jobs:
+  # --- Linux: fully static musl binaries via installers/linux/Dockerfile ---
+  build-linux:
+    name: Build ${{ matrix.asset }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - asset: elm-format-linux-x64
+            runner: ubuntu-latest
+          - asset: elm-format-linux-arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # --version is `git describe` over the tags, which the default
+          # shallow checkout does not have.
+          fetch-depth: 0
+
+      - name: Stamp version
+        run: sh installers/stamp-version.sh
+
+      - name: Build static binary with Docker
+        run: |
+          docker build -t elm-format-build -f installers/linux/Dockerfile .
+          cid=$(docker create elm-format-build)
+          docker cp "$cid:/usr/local/bin/elm-format" ./elm-format
+          docker rm "$cid"
+
+      - name: Smoke test
+        run: ./elm-format --version
+
+      - name: Package
+        run: gzip -9 -c ./elm-format > ${{ matrix.asset }}.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}.gz
+          if-no-files-found: error
+
+  # --- macOS: native cabal build. Intel Macs run it under Rosetta 2. ---
+  build-macos:
+    name: Build elm-format-darwin-arm64
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Stamp version
+        run: sh installers/stamp-version.sh
+
+      - name: Set up GHC and cabal
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.7'
+          cabal-version: '3.12.1.0'
+
+      - name: Build
+        run: |
+          cabal update
+          cabal build elm-format
+          cp "$(cabal list-bin elm-format)" ./elm-format
+          strip ./elm-format
+
+      - name: Smoke test
+        run: ./elm-format --version
+
+      - name: Package
+        run: gzip -9 -c ./elm-format > elm-format-darwin-arm64.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: elm-format-darwin-arm64
+          path: elm-format-darwin-arm64.gz
+          if-no-files-found: error
+
+  # --- Windows: native cabal build producing elm-format.exe. ---
+  build-windows:
+    name: Build elm-format-win32-x64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Stamp version
+        shell: bash
+        run: sh installers/stamp-version.sh
+
+      - name: Set up GHC and cabal
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.7'
+          cabal-version: '3.12.1.0'
+
+      - name: Build
+        shell: bash
+        run: |
+          cabal update
+          cabal build elm-format --enable-executable-static
+          cp "$(cabal list-bin elm-format)" ./elm-format.exe
+
+      - name: Smoke test
+        shell: bash
+        run: ./elm-format.exe --version
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path elm-format.exe -DestinationPath elm-format-win32-x64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: elm-format-win32-x64
+          path: elm-format-win32-x64.zip
+          if-no-files-found: error
+
+  # --- Gather the four artifacts and publish them as a DRAFT release. ---
+  release:
+    name: Publish draft release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -R artifacts
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: artifacts/*

@@ -33,7 +33,8 @@ main = do
 rules :: Rules ()
 rules = do
 
-    StdoutTrim gitDescribe <- liftIO $ cmd "git" [ "describe", "--abbrev=8", "--match", "[0-9]*", "--always" ]
+    -- Our releases are tagged v0.8.8-dev0001, without -a; upstream's, 0.8.8. Also in installers/stamp-version.sh.
+    StdoutTrim gitDescribe <- liftIO $ cmd "git" [ "describe", "--tags", "--abbrev=8", "--match", "v[0-9]*", "--match", "[0-9]*", "--always" ]
     StdoutTrim gitSha <- liftIO $ cmd "git" [ "describe", "--always", "--match", "NOT A TAG", "--dirty" ]
 
     let elmFormat = "_build" </> "bin" </> "elm-format" </> "O0" </> "elm-format" <.> exe
