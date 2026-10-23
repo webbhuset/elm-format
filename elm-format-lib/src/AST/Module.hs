@@ -6,7 +6,7 @@
 
 module AST.Module
     ( Module(..), Header(..), SourceTag(..), SourceSettings
-    , UserImport, ImportMethod(..)
+    , UserImport, ImportMethod(..), Loading(..)
     , DetailedListing(..)
     , defaultHeader
     ) where
@@ -90,5 +90,14 @@ type UserImport
 data ImportMethod = ImportMethod
     { alias :: Maybe (C2 'BeforeSeparator 'AfterSeparator UppercaseIdentifier)
     , exposedVars :: C2 'BeforeSeparator 'AfterSeparator (Listing DetailedListing)
+    , loading :: Loading
     }
+    deriving (Eq, Show)
+
+
+-- `import async M`, from Webbhuset's compiler: M's code may arrive in a
+-- separate file, fetched the first time it is used.
+data Loading
+    = Eager
+    | Async
     deriving (Eq, Show)

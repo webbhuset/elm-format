@@ -94,7 +94,7 @@ data Import
     deriving (Generic)
 
 fromImportMethod :: ModuleName -> AST.ImportMethod -> Import
-fromImportMethod moduleName (AST.ImportMethod alias (C comments exposing)) =
+fromImportMethod moduleName (AST.ImportMethod alias (C comments exposing) _) =
     let
         as_ =
             case alias of
@@ -113,6 +113,7 @@ toImportMethod (Import alias exposing) =
                 Nothing
         )
         (C ([], []) exposing)
+        AST.Eager
 
 instance ToJSON Import where
     toEncoding = genericToEncoding defaultOptions

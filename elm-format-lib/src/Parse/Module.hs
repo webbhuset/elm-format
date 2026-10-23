@@ -157,6 +157,8 @@ imports elmVersion =
                 Module.ImportMethod
                     (Module.alias import1 Control.Applicative.<|> Module.alias import2)
                     (mergeC2 (mergeListing mergeDetailedListing) (Module.exposedVars import1) (Module.exposedVars import2))
+                    -- As the compiler has it: async if any import of the module says so.
+                    (if Module.Async `elem` [Module.loading import1, Module.loading import2] then Module.Async else Module.Eager)
 
         step (comments, m, finalComments) (((C pre name), method), post) =
             ( comments ++ finalComments
@@ -176,15 +178,19 @@ import' elmVersion =
   expecting "an import" $
   do  try (reserved elmVersion "import")
       preName <- whitespace
+      (loading, postAsync) <-
+          option (Module.Eager, []) $
+              try ((,) Module.Async <$> (reserved elmVersion "async" *> whitespace))
       names <- dotSep1 $ capVar elmVersion
-      method' <- method names
-      return (C preName names, method')
+      method' <- method loading names
+      return (C (preName ++ postAsync) names, method')
   where
-    method :: [UppercaseIdentifier] -> IParser Module.ImportMethod
-    method originalName =
+    method :: Module.Loading -> [UppercaseIdentifier] -> IParser Module.ImportMethod
+    method loading originalName =
       Module.ImportMethod
         <$> option Nothing (Just <$> as' originalName)
         <*> option (C ([], []) ClosedListing) (exposing <|> try (listingWithoutExposing elmVersion))
+        <*> pure loading
 
     as' :: [UppercaseIdentifier] -> IParser (C2 'BeforeSeparator 'AfterSeparator UppercaseIdentifier)
     as' moduleName =

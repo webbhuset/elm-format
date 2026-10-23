@@ -770,9 +770,21 @@ formatImport elmVersion (name@(C _ rawName), method) =
 
             _ ->
               Just $ pleaseReport "UNEXPECTED IMPORT" "import clause comments with no clause"
+
+        formatName rawName' =
+            case AST.Module.loading method of
+                AST.Module.Eager ->
+                    line $ formatQualifiedUppercaseIdentifier elmVersion rawName'
+
+                AST.Module.Async ->
+                    line $ row
+                        [ keyword "async"
+                        , space
+                        , formatQualifiedUppercaseIdentifier elmVersion rawName'
+                        ]
     in
     case
-        ( formatPreCommented $ fmap (line . formatQualifiedUppercaseIdentifier elmVersion) name
+        ( formatPreCommented $ fmap formatName name
         , as
         , exposing
         )

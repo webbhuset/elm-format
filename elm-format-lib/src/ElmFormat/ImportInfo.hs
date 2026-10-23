@@ -4,7 +4,7 @@ import AST.V0_16
 import AST.Listing (Listing(..), CommentedMap)
 import Elm.Utils ((|>))
 
-import AST.Module (Module, ImportMethod(..), DetailedListing(..))
+import AST.Module (Module, ImportMethod(..), DetailedListing(..), Loading(..))
 import qualified AST.Module
 import Data.Coapplicative
 import qualified Data.Bimap as Bimap
@@ -42,7 +42,7 @@ fromImports knownContents rawImports =
         defaultImports :: Dict.Map [UppercaseIdentifier] ImportMethod
         defaultImports =
             Dict.fromList $
-                fmap (\(m, i) -> (fmap UppercaseIdentifier m, ImportMethod Nothing (C ([], []) i)))
+                fmap (\(m, i) -> (fmap UppercaseIdentifier m, ImportMethod Nothing (C ([], []) i) Eager))
                 [ ( [ "Basics" ], OpenListing (C ([], []) ()) )
                 , ( [ "List" ], ClosedListing )
                 , ( [ "Maybe" ]
@@ -82,7 +82,7 @@ fromImports knownContents rawImports =
                     ]
                 _ -> KnownContents.get moduleName knownContents |> Maybe.fromMaybe []
 
-        getExposed moduleName (ImportMethod _ (C _ listing)) =
+        getExposed moduleName (ImportMethod _ (C _ listing) _) =
             Dict.fromList $ fmap (flip (,) moduleName) $
             case listing of
                 ClosedListing -> []
@@ -136,7 +136,7 @@ fromImports knownContents rawImports =
 
         ambiguous = Dict.empty
 
-        exposesAll (ImportMethod _ (C _ listing)) =
+        exposesAll (ImportMethod _ (C _ listing) _) =
             case listing of
                 ExplicitListing _ _ -> False
                 OpenListing _ -> True
